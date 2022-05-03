@@ -1,0 +1,3 @@
+/root/work/tars2node/build/CMakeFiles/rebuild_cache.dir
+/root/work/tars2node/build/CMakeFiles/tars2node.dir
+/root/work/tars2node/build/CMakeFiles/edit_cache.dir

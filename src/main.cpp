@@ -77,6 +77,7 @@ void check(vector<string> &vFiles)
 
 int main(int argc, char* argv[])
 {
+    std::cout << " [DEBUG] argc:" << argc << std::endl;
     if(argc < 2)
     {
         usage();

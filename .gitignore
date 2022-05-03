@@ -4,3 +4,5 @@
 
 /.vs
 /out/build
+bin/
+debug/
