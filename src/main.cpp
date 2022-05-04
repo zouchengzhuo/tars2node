@@ -77,7 +77,6 @@ void check(vector<string> &vFiles)
 
 int main(int argc, char* argv[])
 {
-    std::cout << " [DEBUG] argc:" << argc << std::endl;
     if(argc < 2)
     {
         usage();
@@ -85,30 +84,31 @@ int main(int argc, char* argv[])
 
     try
     {
+        // 读取输入的选项信息
         TC_Option option;
         option.decode(argc, argv);
         vector<string> vFiles = option.getSingle();
         check(vFiles);
-
+        // 查看版本
         if (option.hasParam("version"))
         {
             version();
             return 0;
         }
-
+        // 帮助信息
         if(option.hasParam("help"))
         {
             usage();
             return 0;
         }
-
+        // TODO：？？？
         if(option.hasParam("base"))
         {
             if (::chdir(option.getValue("base").c_str()) != 0) {
                 return -1;
             }
         }
-
+    // 是否允许处理内部保留的命名空间
     #define ALLOW_USE_RESERVED_NAMESPACE_V(name, keeped) \
         g_parse->set##name(keeped);
     #define ALLOW_USE_RESERVED_NAMESPACE_BASE(name, keeped) \
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 
 	    g_parse->setTars(option.hasParam("with-tars"));
         g_parse->setUseCurrentPath(option.hasParam("relative"));
-
+        // 创建一个 代码转换器 对象，并设置相关属性
         CodeGenerator generator;
         generator.setRpcPath(option.hasParam("rpc-path")?option.getValue("rpc-path"):RPC_MODULE_PATH);
         generator.setStreamPath(option.hasParam("stream-path")?option.getValue("stream-path"):STREAM_MODULE_PATH);
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
         generator.setEnumReverseMappings(option.hasParam("enum-reverse-mappings"));
         generator.setEnableTS(option.hasParam("ts"));
         generator.setEnableDTS(option.hasParam("dts"));
-
+        //处理用 string 或者 bigint 表示 long 类型的情况
         if (option.hasParam("long-type"))
         {
             string longType = TC_Common::lower(option.getValue("long-type"));
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
             }
             
         }
-
+        // 如果开启了优化选项
         if (option.hasParam("optimize"))
         {
             string level = TC_Common::lower(option.getValue("optimize"));
@@ -163,10 +163,11 @@ int main(int argc, char* argv[])
                 generator.setOptimize(CodeGenerator::O0);
             }
         }
-
+        // 是否递归转换
         bool _bRecursive = option.hasParam("r");
+        // 最小化依赖
         bool _bMinimalMembers = option.hasParam("r-minimal");
-
+        // 处理递归转换
         if (option.hasParam("r-reserved"))
         {
             set<string> vMembers;
@@ -202,7 +203,7 @@ int main(int argc, char* argv[])
 
         generator.setRecursive(_bRecursive);
         generator.setMinimalMembers(_bMinimalMembers);
-
+        // 转换文件
         for (size_t i = 0; i < vFiles.size(); i++)
         {
             generator.createFile(vFiles[i], true);

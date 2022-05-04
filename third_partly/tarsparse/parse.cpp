@@ -309,6 +309,7 @@ void TarsParse::initScanner()
     _keywordMap["unsigned"] = TARS_UNSIGNED;
 }
 
+// 生成一个 tab 符号
 string TarsParse::getTab()
 {
     ostringstream s;

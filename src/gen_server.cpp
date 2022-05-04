@@ -49,10 +49,19 @@ string CodeGenerator::generatePing(const NamespacePtr &nPtr, const InterfacePtr 
     return str.str();
 }
 
+/**
+ * @brief 异步响应函数代码实现，处理给客户端发送响应结果的过程
+ * 
+ * @param nPtr 
+ * @param pPtr 
+ * @param oPtr 
+ * @return string 异步响应函数代码实现，如 var __EDU_EduOOV$getOOVPhone$RE = function (_ret, stRsp) {...}
+ */
 string CodeGenerator::generateAsync(const NamespacePtr &nPtr, const InterfacePtr &pPtr, const OperationPtr &oPtr)
 {
     ostringstream str;
 
+    // 生成参数列表
     string sParams = "";
     if (oPtr->getReturnPtr()->getTypePtr())
     {
@@ -69,11 +78,11 @@ string CodeGenerator::generateAsync(const NamespacePtr &nPtr, const InterfacePtr
 
         sParams += (sParams.empty()?"":", ") + vParamDecl[i]->getTypeIdPtr()->getId();
     }
-
+    // 函数定义
     str << TAB << "var __" << nPtr->getId() << "_" << pPtr->getId() << "$" << oPtr->getId() << "$RE = function (" << sParams << ") {" << endl;
 
     INC_TAB;
-
+    // 参数为空的响应
     if (sParams.empty())
     {
         str << TAB << "this.doResponse(new " << IDL_NAMESPACE_STR << "Stream.BinBuffer());" << endl;
@@ -82,7 +91,7 @@ string CodeGenerator::generateAsync(const NamespacePtr &nPtr, const InterfacePtr
 
         return str.str();
     }
-
+    // wup协议的响应发送代码
     str << TAB << "if (this.getRequestVersion() === " << PROTOCOL_SIMPLE << " || this.getRequestVersion() === " << PROTOCOL_COMPLEX << ") {" << endl;
     INC_TAB;
     str << TAB << "var " << PROTOCOL_VAR << " = new " << IDL_NAMESPACE_STR << "Stream.UniAttribute();" << endl;
@@ -125,7 +134,7 @@ string CodeGenerator::generateAsync(const NamespacePtr &nPtr, const InterfacePtr
     str << endl;
     str << TAB << " this.doResponse(new TarsStream.BinBuffer(Buffer.from(JSON.stringify(_data_))));" << endl;
     DEL_TAB;
-    //// =========
+    //// ========= 普通 tars 协议的响应
 
     str << TAB << "} else {" << endl;
 
@@ -156,11 +165,19 @@ string CodeGenerator::generateAsync(const NamespacePtr &nPtr, const InterfacePtr
     return str.str();
 }
 
+/**
+ * @brief onDispatch 中要调用的 真正的 dispatch 函数的实现，真正处理请求的函数
+ * 
+ * @param nPtr 
+ * @param pPtr 
+ * @param oPtr 
+ * @return string 真正的 dispatch 函数的实现，如 EDU.EduOOVImp.prototype.__getOOVTrans = function (current, binBuffer) {...}
+ */
 string CodeGenerator::generateDispatch(const NamespacePtr &nPtr, const InterfacePtr &pPtr, const OperationPtr &oPtr)
 {
     ostringstream str;
     vector<ParamDeclPtr> & vParamDecl = oPtr->getAllParamDeclPtr();
-
+    // 函数定义
     str << TAB << nPtr->getId() << "." << pPtr->getId() << "Imp.prototype.__" << oPtr->getId() << " = function (current" << (vParamDecl.size() != 0 ? ", binBuffer" : "") << ") {" << endl;
 
     INC_TAB;
@@ -175,7 +192,7 @@ string CodeGenerator::generateDispatch(const NamespacePtr &nPtr, const Interface
     {
         dstr << endl;
     }
-
+    // wup 协议处理
     dstr << TAB << "if (current.getRequestVersion() === " << PROTOCOL_SIMPLE << " || current.getRequestVersion() === " << PROTOCOL_COMPLEX << ") {" << endl;
     INC_TAB;
     dstr << TAB << "var " << PROTOCOL_VAR << " = new " << IDL_NAMESPACE_STR << "Stream.UniAttribute();" << endl;
@@ -257,7 +274,7 @@ string CodeGenerator::generateDispatch(const NamespacePtr &nPtr, const Interface
         }
     }
     DEL_TAB;
-    //// ========= 
+    //// ========= 普通 tars 协议请求的处理
 
     dstr << TAB << "} else {" << endl;
 
@@ -305,6 +322,14 @@ string CodeGenerator::generateDispatch(const NamespacePtr &nPtr, const Interface
     return str.str();
 }
 
+/**
+ * @brief 生成业务函数体（实际上是基类实现，内容只有一个 assert.fail，需要用户重写 imp 函数业务处理逻辑）
+ * 
+ * @param nPtr 
+ * @param pPtr 
+ * @param oPtr 
+ * @return string 基类的业务函数体
+ */
 string CodeGenerator::generateJSServer(const NamespacePtr &nPtr, const InterfacePtr &pPtr, const OperationPtr &oPtr)
 {
     ostringstream str;
@@ -319,12 +344,20 @@ string CodeGenerator::generateJSServer(const NamespacePtr &nPtr, const Interface
     return str.str();
 }
 
+/**
+ * @brief 生成一个 interface 的 servant 的代码
+ * 
+ * @param pPtr 
+ * @param nPtr 
+ * @return string 一个 interface servant 实现代码
+ */
 string CodeGenerator::generateJSServer(const InterfacePtr &pPtr, const NamespacePtr &nPtr)
 {
     ostringstream str;
     vector<OperationPtr> & vOperation = pPtr->getAllOperationPtr();
 
     // generate the implementation class
+    // 生成 imp 函数定义
     str << TAB << nPtr->getId() << "." << pPtr->getId() << "Imp = function () { " << endl;
     INC_TAB;
     str << TAB << "this._name   = undefined;" << endl;
@@ -333,9 +366,11 @@ string CodeGenerator::generateJSServer(const InterfacePtr &pPtr, const Namespace
     str << TAB << "};" << endl << endl;
 
     // generate the initialize function
+    // 生成 initialize 函数
     str << TAB << nPtr->getId() << "." << pPtr->getId() << "Imp.prototype.initialize = function () {};" << endl << endl;
 
     // generate the dispatch function
+    // 生成 onDispatch 函数
     str << TAB << nPtr->getId() << "." << pPtr->getId() << "Imp.prototype.onDispatch = function (current, funcName, binBuffer) { " << endl;
     INC_TAB;
     str << TAB << "if (\"__\" + funcName in this) {" << endl;
@@ -351,9 +386,10 @@ string CodeGenerator::generateJSServer(const InterfacePtr &pPtr, const Namespace
     str << TAB << "};" << endl << endl;
 
     // generate the ping function
+    // 生成 ping 函数
     str << generatePing(nPtr, pPtr) << endl;
-
     // generate functions
+    // 生成所有业务函数
     for (size_t i = 0; i < vOperation.size(); i++)
     {
         str << generateJSServer(nPtr, pPtr, vOperation[i]) << endl;
@@ -366,6 +402,15 @@ string CodeGenerator::generateJSServer(const InterfacePtr &pPtr, const Namespace
     return str.str();
 }
 
+/**
+ * @brief 生成namespace 中 所有 interface 的 servant 的代码
+ * 
+ * @param pPtr 
+ * @param bNeedStream out参数，是否依赖 @tars/stream 模块
+ * @param bNeedRpc out参数，是否依赖 @tars/rpc 模块
+ * @param bNeedAssert out参数，是否依赖 assert 函数
+ * @return string namespace 中 所有interface 的 servant 实现代码
+ */
 string CodeGenerator::generateJSServer(const NamespacePtr &pPtr, bool &bNeedStream, bool &bNeedRpc, bool &bNeedAssert)
 {
 	ostringstream str;
@@ -385,12 +430,20 @@ string CodeGenerator::generateJSServer(const NamespacePtr &pPtr, bool &bNeedStre
 	return str.str();
 }
 
+/**
+ * @brief 生成一个 服务端 imp 的完整字符串，含结构体、枚举、常量 以及 interface servant实现
+ * 
+ * @param pPtr 
+ * @return true 
+ * @return false 
+ */
 bool CodeGenerator::generateJSServer(const ContextPtr &pPtr)
 {
     vector<NamespacePtr> namespaces = pPtr->getNamespaces();
 
     ostringstream istr;
     set<string> setNamespace;
+    // 遍历 context 中的 namespace， 生成 模块定义 和 export 语句
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         if (setNamespace.count(namespaces[i]->getId()) == 0)
@@ -407,12 +460,14 @@ bool CodeGenerator::generateJSServer(const ContextPtr &pPtr)
     bool bNeedAssert = false;
     bool bNeedStream = false;
     bool bQuickFunc = false;
+    // 遍历namespace，生成结构体、枚举、常量的字符串
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         estr << generateJS(namespaces[i], bNeedStream, bNeedAssert, bQuickFunc);
     }
 
     bool bNeedRpc = false;
+    //遍历namespace，生成 interface 和 其中所有方法的代码
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         estr << generateJSServer(namespaces[i], bNeedStream, bNeedRpc, bNeedAssert) << endl;
@@ -424,6 +479,7 @@ bool CodeGenerator::generateJSServer(const ContextPtr &pPtr)
     }
 
     // generate module imports
+    // 生成依赖模块的引入
     ostringstream ostr;
     if (bNeedAssert)
     {
@@ -437,6 +493,7 @@ bool CodeGenerator::generateJSServer(const ContextPtr &pPtr)
     {
         ostr << TAB << "var " << IDL_NAMESPACE_STR << "Error  = require(\"" << _sRpcPath << "\").error;" << endl;
     }
+    // 生成依赖协议的import语句
     for (map<string, ImportFile>::iterator it = _mapFiles.begin(); it != _mapFiles.end(); it++)
     {
         if (it->second.sModule.empty()) continue;
@@ -452,7 +509,7 @@ bool CodeGenerator::generateJSServer(const ContextPtr &pPtr)
     }
 
     ostringstream str;
-
+    // 组装、生成最终代码  XXXX.js
     str << printHeaderRemark("Server");
     str << DISABLE_ESLINT << endl;
     str << endl;

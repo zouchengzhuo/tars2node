@@ -16,6 +16,13 @@
 
 #include "code_generator.h"
 
+/**
+ * @brief 生成枚举字符串
+ * 
+ * @param pPtr 枚举指针
+ * @param sNamespace 所属namespace
+ * @return string 一个枚举的字符串
+ */
 string CodeGenerator::generateJS(const EnumPtr &pPtr, const string &sNamespace)
 {
 	ostringstream s;
@@ -84,6 +91,14 @@ string CodeGenerator::generateJS(const EnumPtr &pPtr, const string &sNamespace)
     }
 }
 
+/**
+ * @brief 生成常量
+ * 
+ * @param pPtr 常量指针
+ * @param sNamespace 所属namespace
+ * @param bNeedStream out参数，需要用二进制表示字符串时标记为 true
+ * @return string 一个常量的字符串
+ */
 string CodeGenerator::generateJS(const ConstPtr &pPtr, const string &sNamespace, bool &bNeedStream)
 {
     if (_bMinimalMembers && !_bEntry && !isDependent(sNamespace, pPtr->getTypeIdPtr()->getId()))
@@ -92,7 +107,7 @@ string CodeGenerator::generateJS(const ConstPtr &pPtr, const string &sNamespace,
     }
 
     ostringstream s;
-
+    
     if (_bStringBinaryEncoding && GET_CONST_GRAMMAR_PTR(pPtr)->t == CONST_GRAMMAR(STRING))
     {
         bNeedStream = true;
@@ -103,6 +118,15 @@ string CodeGenerator::generateJS(const ConstPtr &pPtr, const string &sNamespace,
     return s.str();
 }
 
+/**
+ * @brief 生成一个 struct 的字符串
+ * 
+ * @param pPtr struct 指针
+ * @param sNamespace 所属的 namespace
+ * @param bNeedAssert out参数，标记struct未实现 _equal 函数所需的 key 操作
+ * @param bQuickFunc out参数，标记使用了函数名引用，如：var _hasOwnProperty = Object.prototype.hasOwnProperty;
+ * @return string 一个结构体的字符串
+ */
 string CodeGenerator::generateJS(const StructPtr &pPtr, const string &sNamespace, bool &bNeedAssert, bool &bQuickFunc)
 {
     if (_bMinimalMembers && !_bEntry && !isDependent(sNamespace, pPtr->getId()))
@@ -316,10 +340,21 @@ string CodeGenerator::generateJS(const StructPtr &pPtr, const string &sNamespace
     return s.str();
 }
 
+/**
+ * @brief 生成一个 namespace 下所有结构体、枚举、常量 的字符串
+ * 
+ * @param pPtr namespace 指针
+ * @param bNeedStream out参数， 当常量字符串不为空时，设置为true
+ * @param bNeedAssert out参数，生成的js代码需要 assert时设置为true
+ * @param bQuickFunc out参数，使用了快捷函数时设置为true
+ * @return string 一个 namespace 下，所有结构体、枚举、常量 的字符串
+ */
 string CodeGenerator::generateJS(const NamespacePtr &pPtr, bool &bNeedStream, bool &bNeedAssert, bool &bQuickFunc)
 {
+    // 存放所有的结构体字符串
     ostringstream sstr;
     vector<StructPtr> ss(pPtr->getAllStructPtr());
+    // 遍历并处理结构体
     for (size_t last = 0; last != ss.size() && ss.size() != 0;)
     {
         last = ss.size();
@@ -338,8 +373,10 @@ string CodeGenerator::generateJS(const NamespacePtr &pPtr, bool &bNeedStream, bo
         }
     }
 
+    // 存放所有的常量字符串
     ostringstream cstr;
 	vector<ConstPtr> &cs = pPtr->getAllConstPtr();
+    // 遍历并处理常量
 	for (size_t i = 0; i < cs.size(); i++)
 	{
         string str = generateJS(cs[i], pPtr->getId(), bNeedStream);
@@ -348,8 +385,9 @@ string CodeGenerator::generateJS(const NamespacePtr &pPtr, bool &bNeedStream, bo
             cstr << str << endl;
         }
 	}
-
+    // 存放枚举字符串
     ostringstream estr;
+    // 遍历并处理枚举
 	vector<EnumPtr> & es = pPtr->getAllEnumPtr();
     for (size_t i = 0; i < es.size(); i++)
     {
@@ -359,7 +397,7 @@ string CodeGenerator::generateJS(const NamespacePtr &pPtr, bool &bNeedStream, bo
             estr << str << endl;
         }
     }
-
+    //拼接字符串并返回
     ostringstream str;
     if (!estr.str().empty()) str << estr.str();
     if (!cstr.str().empty()) str << cstr.str();
@@ -372,12 +410,20 @@ string CodeGenerator::generateJS(const NamespacePtr &pPtr, bool &bNeedStream, bo
 	return str.str();
 }
 
+/**
+ * @brief 生成整个 context 的字符串。 这个是生成 XXXXTars.js 时用的，非client proxy代码
+ * 
+ * @param pPtr 
+ * @return true 有 结构体/枚举/常量
+ * @return false 无 结构体/枚举/常量
+ */
 bool CodeGenerator::generateJS(const ContextPtr &pPtr)
 {
     vector<NamespacePtr> namespaces = pPtr->getNamespaces();
 
     ostringstream istr;
     set<string> setNamespace;
+    // 遍历并处理 namespace，生成 namespace 的声明和 export 语句
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         if (setNamespace.count(namespaces[i]->getId()) == 0)
@@ -394,16 +440,19 @@ bool CodeGenerator::generateJS(const ContextPtr &pPtr)
     bool bNeedAssert = false;
     bool bNeedStream = false;
     bool bQuickFunc = false;
+    // 遍历并处理 namespace，生成 结构体、枚举、常量的字符串
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         estr << generateJS(namespaces[i], bNeedStream, bNeedAssert, bQuickFunc);
     }
+    // 生成后的结构体、枚举、常量 最终返回是空字符，返回false
     if (estr.str().empty())
     {
         return false;
     }
 
     // generate module imports
+    // 生成模块 import 语句
     ostringstream ostr;
     for (map<string, ImportFile>::iterator it = _mapFiles.begin(); it != _mapFiles.end(); it++)
     {
@@ -415,6 +464,7 @@ bool CodeGenerator::generateJS(const ContextPtr &pPtr)
     }
 
     // concat generated code
+    // 组装最终生成的语句
     ostringstream sstr;
     sstr << printHeaderRemark("Structure");
     sstr << DISABLE_ESLINT << endl;

@@ -33,6 +33,14 @@ struct SortOperation
     }
 };
 
+/**
+ * @brief 生成 interface 中的函数
+ * 
+ * @param nPtr namespace 指针
+ * @param pPtr interface 指针
+ * @param oPtr operation（方法）指针
+ * @return string operation（方法）的字符串
+ */
 string CodeGenerator::generateJSProxy(const NamespacePtr &nPtr, const InterfacePtr &pPtr, const OperationPtr &oPtr)
 {
     ostringstream str;
@@ -351,6 +359,13 @@ string CodeGenerator::generateJSProxy(const NamespacePtr &nPtr, const InterfaceP
     return str.str();
 }
 
+/**
+ * @brief 生成一个 interface 的所有的函数的
+ * 
+ * @param nPtr namespace 指针
+ * @param pPtr interface 指针
+ * @return string interface 的所有方法的字符串
+ */
 string CodeGenerator::generateJSProxy(const NamespacePtr &nPtr, const InterfacePtr &pPtr)
 {
     ostringstream str;
@@ -365,6 +380,14 @@ string CodeGenerator::generateJSProxy(const NamespacePtr &nPtr, const InterfaceP
     return str.str();
 }
 
+/**
+ * @brief 生成 namespace 下所有的 interface
+ * 
+ * @param nPtr namespace 指针
+ * @param bNeedRpc out参数，是否需要 rpc 模块，若有至少一个 interface，则需要
+ * @param bNeedStream out参数，是否需要 stream 编解码模块，若有至少一个 interface，则需要
+ * @return string 所有 interface 生成的字符串
+ */
 string CodeGenerator::generateJSProxy(const NamespacePtr &nPtr, bool &bNeedRpc, bool &bNeedStream)
 {
     ostringstream str;
@@ -383,11 +406,19 @@ string CodeGenerator::generateJSProxy(const NamespacePtr &nPtr, bool &bNeedRpc, 
     return str.str();
 }
 
+/**
+ * @brief 生成一个 客户端proxy 的完整字符串，含结构体、枚举、常量 以及 interface proxy实现
+ * 
+ * @param cPtr context 指针
+ * @return true 有 interface / struct /enum / const
+ * @return false 无
+ */
 bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
 {
     vector<NamespacePtr> namespaces = cPtr->getNamespaces();
-
+    // interface 相关字符
     ostringstream istr;
+    // 遍历 namespace，生成 namespace 定义和导出语句
     set<string> setNamespace;
     for(size_t i = 0; i < namespaces.size(); i++)
     {
@@ -401,6 +432,7 @@ bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
     }
 
     set<string> setInterface;
+    // 遍历 namespace，生成 interface 定义语句 ${APP}.${InterfaceName}Proxy、原型中自带的框架函数 setTimeout 等
     for(size_t i = 0; i < namespaces.size(); i++) 
     {
         vector<InterfacePtr> & is = namespaces[i]->getAllInterfacePtr();
@@ -411,32 +443,32 @@ bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
                 continue;
             }
             setInterface.insert(namespaces[i]->getId() + "::" + is[ii]->getId());
-
+            // Proxy 类定义
             istr << TAB << namespaces[i]->getId() << "." << is[ii]->getId() << "Proxy = function () {" << endl;
             INC_TAB;
             istr << TAB << "this._name    = undefined;" << endl;
             istr << TAB << "this._worker  = undefined;" << endl;
             DEL_TAB;
             istr << TAB << "};" << endl << endl;
-
+            // 生成setTimeout 函数
             istr << TAB << namespaces[i]->getId() << "." << is[ii]->getId() << "Proxy.prototype.setTimeout = function (iTimeout) {" << endl;
             INC_TAB;
             istr << TAB << "this._worker.timeout = iTimeout;" << endl;
             DEL_TAB;
             istr << TAB << "};" << endl << endl;
-
+            // 生成 getTimeout 函数
             istr << TAB << namespaces[i]->getId() << "." << is[ii]->getId() << "Proxy.prototype.getTimeout = function () {" << endl;
             INC_TAB;
             istr << TAB << "return this._worker.timeout;" << endl;
             DEL_TAB;
             istr << TAB << "};" << endl << endl;
-
+            // 生成 setVersion 函数
             istr << TAB << namespaces[i]->getId() << "." << is[ii]->getId() << "Proxy.prototype.setVersion = function (iVersion) {" << endl;
             INC_TAB;
             istr << TAB << "this._worker.version = iVersion;" << endl;
             DEL_TAB;
             istr << TAB << "};" << endl << endl;
-
+            // 生成 getVersion 函数
             istr << TAB << namespaces[i]->getId() << "." << is[ii]->getId() << "Proxy.prototype.getVersion = function () {" << endl;
             INC_TAB;
             istr << TAB << "return this._worker.version;" << endl;
@@ -450,12 +482,14 @@ bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
     bool bNeedAssert = false;
     bool bNeedStream = false;
     bool bQuickFunc = false;
+    // 遍历 namespace， 生成 结构体、枚举、常量
 	for(size_t i = 0; i < namespaces.size(); i++)
 	{
 		estr << generateJS(namespaces[i], bNeedStream, bNeedAssert, bQuickFunc);
 	}
 
     bool bNeedRpc = false;
+    // 遍历 namespace，生成 interface（含所有函数）
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         estr << generateJSProxy(namespaces[i], bNeedRpc, bNeedStream);
@@ -467,6 +501,7 @@ bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
     }
 
     // generate module imports
+    // 生成 import 模块的语句
     ostringstream ostr;
     for (map<string, ImportFile>::iterator it = _mapFiles.begin(); it != _mapFiles.end(); it++)
     {
@@ -478,6 +513,7 @@ bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
     }
 
     // concat generated code    
+    // 组合字符串
     ostringstream sstr;
     sstr << printHeaderRemark("Client");
     sstr << DISABLE_ESLINT << endl;
@@ -499,10 +535,12 @@ bool CodeGenerator::generateJSProxy(const ContextPtr &cPtr)
     sstr << ostr.str() << endl;
 
     // generate helper functions
+    // 快捷函数 —— 引用原型函数，用较短的名字调用
     if (bQuickFunc)
     {
         sstr << "var _hasOwnProperty = Object.prototype.hasOwnProperty;" << endl;
     }
+    // 如果需要 rpc，生成错误生成函数
     if (bNeedRpc)
     {
         sstr << TAB << "var _makeError = function (data, message, type) {" << endl;

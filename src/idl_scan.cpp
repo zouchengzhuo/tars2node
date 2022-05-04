@@ -100,8 +100,15 @@ string CodeGenerator::findName(const string& sNamespace, const string& sName, co
     return "";
 }
 
+/**
+ * @brief 扫描contexts，将所有文件的 struct、enum等描述信息写入 CodeGenerator 类的 _mapFiles 私有成员map
+ * 
+ * @param sFile 
+ * @param bNotPrefix 
+ */
 void CodeGenerator::scan(const string& sFile, bool bNotPrefix)
 {
+    // 如果文件已经处理过了，直接返回
     if (_mapFiles.find(sFile) != _mapFiles.end())
     {
         return ;
@@ -109,9 +116,9 @@ void CodeGenerator::scan(const string& sFile, bool bNotPrefix)
 
     string sIdlFile = getRealFileInfo(sFile);
     g_parse->parse(sIdlFile);
-
+    // 解析一遍文件，拿到 contexts
     vector<ContextPtr> contexts = g_parse->getContexts();
-
+    // 遍历 contexts，按个处理
 	for(size_t i = 0; i < contexts.size(); i++)
 	{
 		if (sIdlFile == contexts[i]->getFileName())
@@ -120,11 +127,13 @@ void CodeGenerator::scan(const string& sFile, bool bNotPrefix)
             item.sFile   = "./" + TC_File::excludeFileExt(TC_File::extractFileName(sFile)) + IDL_TYPE + ".js";
             item.sModule = bNotPrefix?"":makeName();
 
+            // 遍历，处理所有 namespace
             vector<NamespacePtr> namespaces = contexts[i]->getNamespaces();
             for (size_t ii = 0; ii < namespaces.size(); ii++)
             {
                 string sNamespace = namespaces[ii]->getId();
 
+                // 处理 namespace 中的 struct
                 vector<StructPtr> & ss = namespaces[ii]->getAllStructPtr();
                 for (size_t iii = 0; iii < ss.size(); iii++)
                 {
@@ -138,6 +147,7 @@ void CodeGenerator::scan(const string& sFile, bool bNotPrefix)
                     item.mapVars.insert(make_pair(temp.sNamespace + "::" + temp.sName, temp));
                 }
 
+                // 处理 namespace 中的 enum
                 vector<EnumPtr> & es = namespaces[ii]->getAllEnumPtr();
                 for (size_t iii = 0; iii < es.size(); iii++)
                 {
@@ -167,9 +177,9 @@ void CodeGenerator::scan(const string& sFile, bool bNotPrefix)
                     }
                 }
             }
-
+            // 插入文件的描述信息
             _mapFiles.insert(make_pair(sFile, item));
-
+            // 递归处理 include 文件
             vector<string> vecFiles = contexts[i]->getIncludes();
             for (size_t ii = 0; ii < vecFiles.size(); ii++)
             {

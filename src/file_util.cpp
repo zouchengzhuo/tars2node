@@ -28,6 +28,12 @@ void CodeGenerator::makeUTF8File(const string& sFileName, const string& sFileCon
     }
 }
 
+/**
+ * @brief 从输入文件路径获取真实的文件全路径
+ * 
+ * @param sPath 
+ * @return string 
+ */
 string CodeGenerator::getRealFileInfo(const string& sPath) 
 {
     return TC_File::extractFilePath(sPath) + TC_File::excludeFileExt(TC_File::extractFileName(sPath)) + "." + TC_Common::lower(IDL_TYPE);

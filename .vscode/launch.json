@@ -9,7 +9,7 @@
             "type": "cppdbg", //调试类型，除使用msvc进行调试外，均为该类型
             "request": "launch",
             "program": "${workspaceFolder}/bin/linux/${workspaceFolderBasename}", //指定C/C++程序位置
-            "args": ["--client", "debug/EduOOV.tars"], //指定运行参数
+            "args": ["--dir=debug/", "--client", "--dts", "debug/EduOOV.tars"], //指定运行参数
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}", //指定工作目录
             "preLaunchTask": "build", //在调试前会先调用build_debug这个task编译构建程序

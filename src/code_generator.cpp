@@ -16,6 +16,12 @@
 
 #include "code_generator.h"
 
+/**
+ * @brief 生成头部信息
+ * 
+ * @param sTypeName 转换模式
+ * @return string 
+ */
 string CodeGenerator::printHeaderRemark(const string &sTypeName)
 {
     ostringstream s;
@@ -30,21 +36,29 @@ string CodeGenerator::printHeaderRemark(const string &sTypeName)
     return s.str();
 }
 
+/**
+ * @brief 生成文件，总入口
+ * 
+ * @param file 输入文件
+ * @param bEntry 是否入口
+ */
 void CodeGenerator::createFile(const string &file, const bool bEntry)
 {
+    //获取文件全路径
     _sIdlFile = getRealFileInfo(file);
     _bEntry = bEntry;
-
+    // 基于 flex、bison 实现 的词法、文法 解析。 TODO：貌似没看到原始的 词法/文法 定义文件？
     g_parse->parse(_sIdlFile);
-
+    // 获取所有的 context
     vector<ContextPtr> contexts = g_parse->getContexts();
 
     for(size_t i = 0; i < contexts.size(); i++)
     {
         if (_sIdlFile == contexts[i]->getFileName())
         {
+            // 遍历context，填充 _mapFiles
             scan(_sIdlFile, true);                                  // collect idl symbols
-
+            // 转换为  XXXXTars.js ，无 proxy 和 imp 代码
             if (!_bClient && !_bServer)
             {
                 if (_bTS)
@@ -57,9 +71,11 @@ void CodeGenerator::createFile(const string &file, const bool bEntry)
                     if (_bDTS) generateDTS(contexts[i]);            // generate .d.ts
                 }
             }
-
+            // 转换客户端代码  XXXProxy.js
             if (_bClient)
             {
+                //生成客户端时，需要为所有的 interface 添加 tars_ping 调用支持
+                addTarsPingForProxy(contexts[i]);
                 if (_bTS)
                 {
                     if (!generateTSProxy(contexts[i])) return;      // generate .ts for proxy classes
@@ -70,7 +86,7 @@ void CodeGenerator::createFile(const string &file, const bool bEntry)
                     if (_bDTS) generateDTSProxy(contexts[i]);       // generate .d.ts for proxy classes
                 }
             }
-
+            // 转换服务端代码 XXXX.js 和 XXXImp.js
             if (_bServer)
             {
                 if (_bTS)
@@ -85,7 +101,7 @@ void CodeGenerator::createFile(const string &file, const bool bEntry)
                     generateJSServerImp(contexts[i]);                // generate .js for server implementations
                 }
             }
-
+            // 获取协议的依赖文件，递归转换
             vector<string> files = contexts[i]->getIncludes();
             for (size_t ii = 0; _bRecursive && ii < files.size(); ii++)
             {
@@ -104,6 +120,18 @@ void CodeGenerator::createFile(const string &file, const bool bEntry)
 
                 node.createFile(files[ii], false);
             }
+        }
+    }
+}
+
+void CodeGenerator::addTarsPingForProxy(const ContextPtr &cPtr){
+    vector<NamespacePtr> namespaces = cPtr->getNamespaces();
+    for(size_t i = 0; i < namespaces.size(); i++)
+    {
+        vector<InterfacePtr> & is = namespaces[i]->getAllInterfacePtr();
+        for (size_t ii = 0; ii < is.size(); ii++)
+        {
+            is[ii]->createOperation("tars_ping", nullptr);
         }
     }
 }

@@ -22,24 +22,26 @@
 #include "util/tc_encoder.h"
 #include <set>
 
+// tab 符号
 #ifndef TAB
     #define TAB     g_parse->getTab()
 #endif
-
+// 增加 tab 符号计数
 #ifndef INC_TAB
     #define INC_TAB g_parse->incTab()
 #endif
-
+// 减少 tab 符号计数
 #ifndef DEL_TAB
     #define DEL_TAB g_parse->delTab()
 #endif
-
+// 转小写
 #define TO_LOWER_STRING(str) TC_Common::lower(str)
-
+// 得到字符串 DEFINE_STRING(Test) → "Test"
 #define DEFINE_STRING(str) string(CSTR(str))
 #define CSTR(str) #str
+// 得到 IDL_NAMESPACE 的字符串，即 "Tars"
 #define IDL_NAMESPACE_STR DEFINE_STRING(IDL_NAMESPACE)
-
+// 获取常量指针
 #define GET_CONST_GRAMMAR_PTR_V(name, ptr) \
     ptr->getConst##name##Ptr()
 #define GET_CONST_GRAMMAR_PTR_BASE(name, ptr) \
@@ -90,6 +92,8 @@ public:
           _iOptimizeLevel(O0) {}
 
     void createFile(const string &file, const bool bEntry = true);
+
+    void addTarsPingForProxy(const ContextPtr &cPtr);
 
     void setRpcPath(const string & sPath) { _sRpcPath = sPath; }
 
@@ -290,36 +294,37 @@ private:
     string printHeaderRemark(const string & sTypeName);
 
 private:
+    // rpc 模块路径
     string _sRpcPath;
-
+    // stream 编解码路径
     string _sStreamPath;
-
+    // 目标路径
     string _sToPath;
-
+    // 生成客户端代码
     bool   _bClient;
-
+    // 生成服务端代码
     bool   _bServer;
-
+    // 递归转换
     bool   _bRecursive;
-
+    // TODO：是否使用相对路径，作用？
     bool   _bUseSpecialPath;
-
+    // long 类型的表示方法（string or bigint）
     int    _iLongType;
-
+    // 用二进制表示字符串
     bool   _bStringBinaryEncoding;
-
+    // 枚举值的 名字和值 反转
     bool   _bEnumReverseMappings;
-
+    // 最小化依赖
     bool   _bMinimalMembers;
-
+    // 是否为入口
     bool   _bEntry;
-
+    // idl 文件路径
     string _sIdlFile;
-
+    // 是否生成 ts 代码
     bool   _bTS;
-
+    // 是否生成 dts 声明文件
     bool   _bDTS;
-
+    // 优化级别
     int    _iOptimizeLevel;
 };
 
