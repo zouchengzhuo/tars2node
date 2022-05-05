@@ -93,8 +93,6 @@ public:
 
     void createFile(const string &file, const bool bEntry = true);
 
-    void addTarsPingForProxy(const ContextPtr &cPtr);
-
     void setRpcPath(const string & sPath) { _sRpcPath = sPath; }
 
     void setStreamPath(const string & sPath) { _sStreamPath = sPath; }
@@ -170,6 +168,8 @@ private:
     string getTsType(const TypePtr &pPtr, const bool bStream = true, const bool bBase = false);
 
     string getDefault(const TypeIdPtr & pPtr, const string &sDefault, const string & sNamespace, const bool &bGlobal = true, const bool &bCastEnumAsAny = false);
+
+    void addTarsPingForProxy(const ContextPtr &cPtr);
 
 private:
     string generateJS(const StructPtr &pPtr, const string &sNamespace, bool &bNeedAssert, bool &bQuickFunc);

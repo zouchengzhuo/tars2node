@@ -126,12 +126,13 @@ void CodeGenerator::createFile(const string &file, const bool bEntry)
 
 void CodeGenerator::addTarsPingForProxy(const ContextPtr &cPtr){
     vector<NamespacePtr> namespaces = cPtr->getNamespaces();
+    string ping = TC_Common::lower(IDL_NAMESPACE_STR) + "_ping";
     for(size_t i = 0; i < namespaces.size(); i++)
     {
         vector<InterfacePtr> & is = namespaces[i]->getAllInterfacePtr();
         for (size_t ii = 0; ii < is.size(); ii++)
         {
-            is[ii]->createOperation("tars_ping", nullptr);
+            is[ii]->createOperation(ping, nullptr);
         }
     }
 }
